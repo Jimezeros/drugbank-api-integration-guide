@@ -1,2 +1,118 @@
-# drugbank-api-integration-guide
-Technical documentation for integrating DrugBank API to perform Drug-Drug Interaction (DDI) checks. Demonstrates Docs-as-Code methodology with Python &amp; Node.js examples.
+# Οδηγός Αρχιτεκτονικής Σχεδίασης: Σύστημα Ελέγχου Αλληλεπιδράσεων Φαρμάκων (DDI)
+
+![Type](https://img.shields.io/badge/Type-Technical_Guide-blue) ![Domain](https://img.shields.io/badge/Domain-Healthcare_IT-red) ![API](https://img.shields.io/badge/Integration-DrugBank_API-green)
+
+> **Σημείωση:** Ο παρών οδηγός γεφυρώνει το χάσμα μεταξύ της φαρμακολογικής θεωρίας και της τεχνικής υλοποίησης, εστιάζοντας στην κλινική ασφάλεια και την ακεραιότητα των δεδομένων.
+
+## 📋 Πίνακας Περιεχομένων
+1. [Εισαγωγή & Κλινική Σκοπιμότητα](#1-εισαγωγή--κλινική-σκοπιμότητα)
+2. [Αρχιτεκτονική API & Πρότυπα Δεδομένων](#2-αρχιτεκτονική-api--πρότυπα-δεδομένων)
+3. [Ασφάλεια & Αυθεντικοποίηση](#3-ασφάλεια--αυθεντικοποίηση)
+4. [Οδηγός Υλοποίησης (DDI Checker)](#4-οδηγός-υλοποίησης-ddi-checker)
+5. [Παραδείγματα Κώδικα](#5-παραδείγματα-κώδικα)
+
+---
+
+## 1. Εισαγωγή & Κλινική Σκοπιμότητα
+
+[cite_start]Στη σύγχρονη ψηφιακή υγεία (eHealth), ο έλεγχος Αλληλεπιδράσεων Φαρμάκου-Φαρμάκου (DDI) είναι κρίσιμος για την αποφυγή ιατρικών σφαλμάτων, ειδικά σε ασθενείς με πολυφαρμακία[cite: 66, 69].
+
+Ο οδηγός αυτός αναλύει την ενσωμάτωση του **DrugBank Clinical API** για:
+* [cite_start]**Έλεγχο Αλληλεπιδράσεων (DDI Checker):** Εντοπισμός συγκρούσεων μεταξύ ουσιών[cite: 78].
+* [cite_start]**Κλινική Ακρίβεια:** Χρήση δεδομένων πραγματικού χρόνου αντί στατικών αρχείων[cite: 76].
+
+---
+
+## 2. Αρχιτεκτονική API & Πρότυπα Δεδομένων
+
+[cite_start]Το σύστημα βασίζεται σε αρχιτεκτονική **REST**, χρησιμοποιώντας το HTTP πρωτόκολλο για την επικοινωνία[cite: 84].
+
+### Μορφότυποι: JSON vs XML
+* **Live REST API (JSON):** Χρησιμοποιείται για real-time ελέγχους. [cite_start]Απαιτεί header `Accept: application/json`[cite: 96].
+* [cite_start]**Legacy Data (XML):** Η πλήρης βάση διατίθεται σε XML για μαζική επεξεργασία, συμβατή με παλαιότερα συστήματα υγείας (HL7)[cite: 94, 97].
+
+### Γεωγραφική Συμμόρφωση (Regions)
+[cite_start]Λόγω κανονιστικών διαφορών (FDA vs EMA), είναι κρίσιμη η επιλογή του σωστού endpoint[cite: 101, 104]:
+* 🇺🇸 US: `https://api.drugbank.com/v1/us`
+* 🇪🇺 EU: `https://api.drugbank.com/v1/eu`
+
+---
+
+## 3. Ασφάλεια & Αυθεντικοποίηση
+
+Η ασφάλεια των δεδομένων υγείας είναι αδιαπραγμάτευτη. [cite_start]Όλες οι κλήσεις απαιτούν **HTTPS** (TLS)[cite: 111, 113].
+
+### Μέθοδοι Ταυτοποίησης
+| Μέθοδος | Περιγραφή | Χρήση |
+| :--- | :--- | :--- |
+| **API Key** | Μυστικό αλφαριθμητικό | [cite_start]Μόνο σε **Server-side** κώδικα (Backend)[cite: 118]. |
+| **Client Token** | Προσωρινό κλειδί | [cite_start]Κατάλληλο για **Mobile/Web Apps** (Client-side)[cite: 124]. |
+
+> ⚠️ **Προσοχή:** Ποτέ μην κάνετε commit τα API Keys στο GitHub. [cite_start]Χρησιμοποιήστε Environment Variables (`.env`) ή GitHub Secrets[cite: 131, 133].
+
+---
+
+## 4. Οδηγός Υλοποίησης (DDI Checker)
+
+### Αναγνωριστικά (Identifiers)
+[cite_start]Για ακριβή αποτελέσματα, χρησιμοποιούμε τα παρακάτω IDs[cite: 137, 145]:
+* `DrugBank ID` (π.χ., DB00316 - Acetaminophen)
+* `NDC` (National Drug Code - FDA standard)
+
+### Endpoints
+* **Single Drug Check (GET):** `/v1/drugs/{id}/ddi`
+* **Multi-Drug Interaction Checker (POST):** `/v1/ddi`
+    * *Χρήση:* Έλεγχος λίστας φαρμάκων ταυτόχρονα. [cite_start]Το σώμα του αιτήματος (body) δέχεται πολύπλοκες δομές JSON[cite: 90, 166].
+
+---
+
+## 5. Παραδείγματα Κώδικα
+
+Ακολουθούν παραδείγματα για την κλήση του DDI Checker σε περιβάλλον παραγωγής.
+
+### 🐍 Python Implementation
+[cite_start]Χρήση της βιβλιοθήκης `requests` με διαχείριση σφαλμάτων και Rate Limiting[cite: 229, 230].
+
+```python
+import requests
+import json
+import os
+
+# Χρήση Environment Variables για ασφάλεια
+API_KEY = os.getenv("DRUGBANK_API_KEY") 
+BASE_URL = "[https://api.drugbank.com/v1/ddi](https://api.drugbank.com/v1/ddi)"
+
+def check_interactions(drug_ids):
+    headers = {
+        "Authorization": API_KEY,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    
+    payload = { "drugbank_id": drug_ids }
+
+    try:
+        response = requests.post(BASE_URL, headers=headers, json=payload)
+        response.raise_for_status()
+        
+        data = response.json()
+        print(f"Βρέθηκαν {data.get('total_results', 0)} αλληλεπιδράσεις.")
+
+        for interaction in data.get('interactions', []):
+            drug_a = interaction['product_ingredient']['name']
+            drug_b = interaction['affected_product_ingredient']['name']
+            severity = interaction['severity']
+            description = interaction['description']
+            
+            print(f"[{severity.upper()}] {drug_a} <--> {drug_b}: {description}")
+
+    except requests.exceptions.HTTPError as err:
+        if response.status_code == 429:
+            print("Rate limit exceeded. Implementing backoff strategy...")
+        else:
+            print(f"HTTP Error: {err}")
+
+if __name__ == "__main__":
+    # Παράδειγμα: Ακεταμινοφαίνη, Abatacept, Lepirudin
+    drugs_to_check = ["DB00316", "DB01281", "DB00001"]
+    check_interactions(drugs_to_check)
