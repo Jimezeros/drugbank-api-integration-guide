@@ -20,7 +20,7 @@ In the era of eHealth, Drug-Drug Interaction (DDI) screening is critical for pre
 This guide details the architectural integration of the **DrugBank Clinical API** to facilitate:
 * **Real-time DDI Screening:** Detecting conflicts between prescribed substances dynamically.
 * **Clinical Accuracy:** Moving away from static datasets to real-time, curated pharmacological data.
-* **Regulatory Compliance:** ensuring data aligns with regional standards (FDA, EMA).
+* **Regulatory Compliance:** Ensuring data aligns with regional standards (FDA, EMA).
 
 ---
 
@@ -33,9 +33,14 @@ The system utilizes a **RESTful architecture**, leveraging standard HTTP verbs f
 * **Legacy Data (XML):** Full database exports are available in XML for bulk processing and interoperability with legacy Healthcare Information Systems (HIS) and HL7 standards.
 
 ### Regional Compliance
-To adhere to varying regulatory approvals (e.g., FDA vs. EMA), developers must target the correct regional endpoint:
-* 🇺🇸 US: `https://api.drugbank.com/v1/us`
-* 🇪🇺 EU: `https://api.drugbank.com/v1/eu`
+To ensure results match local regulatory approvals (FDA vs EMA), developers must target the correct region. While legacy integrations used region-specific base URLs, the modern standard utilizes query parameters or API key settings.
+
+* **Standard Method:** Append the `region` parameter to your request.
+  * 🇺🇸 US: `?region=us` (Default)
+  * 🇪🇺 EU: `?region=eu`
+  * 🇨🇦 CA: `?region=ca`
+
+> **Note:** The API Base URL is not a browsable website. It is an endpoint accessed programmatically via code (cURL, Python, etc.).
 
 ---
 
@@ -82,9 +87,16 @@ import os
 
 # Best Practice: Load credentials from Environment Variables
 API_KEY = os.getenv("DRUGBANK_API_KEY") 
+
+# Base URL for the DDI endpoint
 BASE_URL = "[https://api.drugbank.com/v1/ddi](https://api.drugbank.com/v1/ddi)"
 
-def check_interactions(drug_ids):
+def check_interactions(drug_ids, region='us'):
+    """
+    Checks for interactions between a list of drugs.
+    :param drug_ids: List of DrugBank IDs
+    :param region: Regulatory region (us, eu, ca)
+    """
     headers = {
         "Authorization": API_KEY,
         "Content-Type": "application/json",
@@ -93,15 +105,18 @@ def check_interactions(drug_ids):
     
     # Payload construction
     payload = { "drugbank_id": drug_ids }
+    
+    # Append region parameter
+    url = f"{BASE_URL}?region={region}"
 
     try:
-        response = requests.post(BASE_URL, headers=headers, json=payload)
+        response = requests.post(url, headers=headers, json=payload)
         
         # Check for HTTP errors
         response.raise_for_status()
         
         data = response.json()
-        print(f"Total interactions found: {data.get('total_results', 0)}")
+        print(f"Total interactions found ({region.upper()}): {data.get('total_results', 0)}")
 
         for interaction in data.get('interactions', []):
             drug_a = interaction['product_ingredient']['name']
@@ -125,4 +140,5 @@ def check_interactions(drug_ids):
 if __name__ == "__main__":
     # Example: Acetaminophen, Abatacept, Lepirudin
     drugs_to_check = ["DB00316", "DB01281", "DB00001"]
-    check_interactions(drugs_to_check)
+    # Check against EU regulations
+    check_interactions(drugs_to_check, region='eu')
